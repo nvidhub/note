@@ -30,7 +30,7 @@
 
   2. 使用`fdisk`操作目的分区表，`fdisk /dev/sda`，输入`n`添加新的分区，其余步骤使用回车选择默认值，最后输入`w`保存分区表。
 
-  3. 使用`fdisk -l`查看信息分区信息，使用`pvcreate`创建新的物理分区，如下所示：
+  3. 使用`fdisk -l`查看信息分区信息，使用`pvcreate`在物理分区的基础上创建物理卷，如下所示：
 
      ```shell
      root@node-2-92:~# fdisk -l
@@ -56,7 +56,7 @@
        Physical volume "/dev/sda4" successfully created.
      ```
 
-  4. 使用`vgs`查看卷分组名称：
+  4. 使用`vgs`查看卷分组(多个物理卷可组成卷分组)名称：
 
      ```shell
      root@node-2-92:~# vgs
@@ -75,7 +75,7 @@
        ubuntu-vg   2   1   0 wz--n- 48.99g <30.00g
      ```
 
-  6. 查看逻辑卷文件系统名称，并且扩展：
+  6. 查看逻辑卷(逻辑卷是在卷分组的基础上抽象出来的存储卷)文件系统名称，并且扩展：
 
      ```she
      root@node-2-92:~# df -h
