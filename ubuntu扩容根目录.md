@@ -98,7 +98,7 @@
   7. 使用逻辑卷上扩展文件系统：
 
      ```shel
-     root@node-2-92:~# resize2fs /dev/mapper/ubuntu--vg-ubuntu--lv
+     root@node-2-92:~# resize2fs /dev/mapper/ubuntu--vg-ubuntu--lv （如果是centos需要使用xfs_growfs进行扩容，关键在于其是什么文件系统）
      resize2fs 1.44.1 (24-Mar-2018)
      Filesystem at /dev/mapper/ubuntu--vg-ubuntu--lv is mounted on /; on-line resizing required
      old_desc_blocks = 3, new_desc_blocks = 7
