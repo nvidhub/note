@@ -1,0 +1,110 @@
+# project param
+# 当前工程包名
+GO_PACKAGE = git.example.cn/nb/nb
+BINARIES_DIR = bin
+BUILD_DATE := $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
+PWD := $(shell pwd)
+ARCH = $(shell go env GOARCH)
+OS = $(shell go env GOOS)
+
+# git param
+# 当前工程 git 分支
+GIT_VERSION := $(shell git rev-parse --abbrev-ref HEAD)
+GIT_COMMIT := $(shell git rev-parse HEAD)
+MACHINE = git.example.cn
+USER_NAME = anonymous
+USER_PASSWORD = tDEiyqVEiubJjGJ5x26D
+
+# docker
+DOCKER_REGISTRY = registry.example.cn
+DOCKER_IMAGE = nb/nb:${GIT_VERSION}
+ifneq (amd64,${ARCH})
+	DOCKER_IMAGE := nb/nb-${ARCH}:${GIT_VERSION}
+endif
+DOCKER_USERNAME =
+DOCKER_PASSWORD =
+
+# go build param
+GO_PATH = $(shell go env GOPATH)
+ifndef GO_PATH
+	GO_PATH=~/go
+endif
+GO_MOD_DIR = ${GO_PATH}/pkg
+CGO_ENABLED=0
+GOPROXY = https://goproxy.cn,direct
+GOPRIVATE = git.example.cn
+GOINSECURE = ${MACHINE}
+GOBUILD_ARGS = -gcflags "all=-N -l" -ldflags "\
+-X ${GO_PACKAGE}/pkg/common/version.gitVersion=${GIT_VERSION} \
+-X ${GO_PACKAGE}/pkg/common/version.gitCommit=${GIT_COMMIT} \
+-X ${GO_PACKAGE}/pkg/common/version.buildDate=${BUILD_DATE}"
+GOBUILD_PACKAGE = ${GO_PACKAGE}/cmd/...
+GOBUILD_OUTPUT = ${BINARIES_DIR}/${OS}-${ARCH}/
+export 
+
+# Disable make's implicit rules, which are not useful for golang, and slow down the build
+# considerably.
+.SUFFIXES:
+
+.PHONY: all
+all: build
+
+.PHONY: mis-pwd
+mis-pwd:
+	# 免密拉取私有仓库
+	echo "machine ${MACHINE} login ${USER_NAME} password ${USER_PASSWORD}" > ~/.netrc
+
+.PHONY: docker-golangci
+docker-golangci:
+	docker run --rm \
+	-e GOOS=${OS} \
+	-e GOARCH=${ARCH} \
+	-v ${PWD}:/go/src/workspace \
+	-v ${GO_MOD_DIR}:/go/pkg \
+	-w /go/src/workspace \
+	registry.example.cn/nb/golangci-lint:v1.37 \
+	golangci-lint run ./...
+
+.PHONY: build
+build: mis-pwd
+	mkdir -p $(GOBUILD_OUTPUT)
+	GOPROXY=${GOPROXY} GOPRIVATE=${GOPRIVATE} GOOS=${OS} GOARCH=${ARCH} CGO_ENABLED=${CGO_ENABLED} \
+	go build  ${GOBUILD_ARGS} -o ${GOBUILD_OUTPUT} ${GOBUILD_PACKAGE}
+	chmod +x ${GOBUILD_OUTPUT}*
+
+.PHONY: docker-build
+docker-build:
+	docker run --rm \
+	-e GOOS=${OS} \
+	-e GOARCH=${ARCH} \
+	-v ${PWD}:/root/go/workspace \
+	-v ${GO_MOD_DIR}:/root/go/pkg \
+	-w /root/go/workspace \
+	registry.example.cn/nb/ubuntu-base-${ARCH}-libvirt:18.04-build \
+	make build ${MAKEOVERRIDES}
+
+.PHONY: docker
+docker: docker-build
+ifeq (amd64,${ARCH})
+	docker build --build-arg COPY_FROM=${GOBUILD_OUTPUT} -t ${DOCKER_IMAGE} -f Dockerfile .
+else
+	docker build --build-arg IMAGE=registry.example.cn/nb/ubuntu-base-${ARCH}-libvirt:18.04 --build-arg COPY_FROM=${GOBUILD_OUTPUT} -t ${DOCKER_IMAGE} -f Dockerfile .
+endif
+
+.PHONY: docker-push
+docker-push: docker
+	docker tag ${DOCKER_IMAGE} ${DOCKER_REGISTRY}/${DOCKER_IMAGE}
+ifdef DOCKER_USERNAME
+	echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin ${DOCKER_REGISTRY} 
+endif
+	docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE}
+
+clean:
+	rm -rf ${BINARIES_DIR}
+
+godoc:
+	docker run --rm \
+	-p 6060:6060 \
+	-v ${PWD}:/go/src/$(shell sed -n 's/^module \(.*\)/\1/p' go.mod) \
+	golang \
+	bash -c "go get golang.org/x/tools/cmd/godoc && godoc -http=:6060"
