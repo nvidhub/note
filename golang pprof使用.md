@@ -75,11 +75,7 @@ heap profile采集程序内部内存分配及使用情况，分为两大类：**
 
 cpu profile为记录程序执行时各个调用之间的cpu时间开销（默认采集30s），其中如果使用web可视化方式打开(**go tool pprof -http=:99**  http://localhost:PORT/debug/pprof/profile)，可以看见如下Graph关系图：
 
-<img src="/Users/fanqingsong/Library/Application Support/typora-user-images/image-20210902141748904.png" alt="image-20210902141748904" style="zoom:50%;" />
-
 其中红线越粗代表调用之间花费cpu时间越长，虚线代表间接调用，除了使用Graph显示外，也支持top方式展示和火焰图展示，火焰图展示如下：
-
-![image-20210902142110868](/Users/fanqingsong/Library/Application Support/typora-user-images/image-20210902142110868.png)
 
 其中长条越长，代表调用花费cpu时间越长，点击某个长条可以查看其内部更为具体的花费信息。
 
@@ -87,11 +83,10 @@ cpu profile为记录程序执行时各个调用之间的cpu时间开销（默认
 
 ## Goroutine profile说明
 
-与heap profile以及cpu profile类型，goroutine profile可以显示程序中groutie的总数以及分别是哪些地方启动了goroutine，如下图所示：![image-20210902143203640](/Users/fanqingsong/Library/Application Support/typora-user-images/image-20210902143203640.png)
+与heap profile以及cpu profile类型，goroutine profile可以显示程序中groutie的总数以及分别是哪些地方启动了goroutine，如下图所示：
 
 对于goroutine的状况追踪，另一种方式是直接访问： http://localhost:PORT/debug/pprof/goroutine?debug=2，此时浏览器会返回各个goroutine的状态以及trace信息，如下图所示：
 
-![image-20210902143433136](/Users/fanqingsong/Library/Application Support/typora-user-images/image-20210902143433136.png)
 
 比较方便的是可以看到各个goroutine的状态，对于debug时非常方便。
 
